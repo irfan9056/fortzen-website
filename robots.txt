@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fortzenhomesolutionsllc.com/sitemap.xml
