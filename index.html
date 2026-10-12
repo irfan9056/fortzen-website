@@ -238,6 +238,7 @@ form.bid input,form.bid select,form.bid textarea{background:var(--ink);border:1p
 form.bid input:focus,form.bid select:focus,form.bid textarea:focus{border-color:var(--gold);outline:none}
 form.bid textarea{min-height:96px;resize:vertical}
 .form-note{font-size:13px;color:var(--muted)}
+.btn:disabled{opacity:.6;cursor:wait}
 .form-done{grid-column:1/-1;border:1px solid #3D5A43;background:rgba(127,191,138,.08);color:var(--silver);padding:14px 16px;font-size:14.5px}
 @media (max-width: 560px){form.bid{grid-template-columns:1fr}}
 
@@ -634,6 +635,7 @@ footer .logo-big{width:150px;mix-blend-mode:lighten;margin-bottom:12px}
         <button class="btn btn-gold" type="submit">Request My Bid</button>
         <span class="form-note" id="formMsg">Name, email and address are required.</span>
       </div>
+      <input type="text" name="_honey" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
       <div class="form-done" id="formDone" hidden></div>
     </form>
   </div>
@@ -682,16 +684,33 @@ footer .logo-big{width:150px;mix-blend-mode:lighten;margin-bottom:12px}
     setTimeout(function(){b.textContent='Copy'},1800);
   })});
 
-  // bid form (demo: no backend connected yet)
+  // bid form: emails submissions to client@fortzenhomesolutionsllc.com via FormSubmit
   var form=document.getElementById('bidForm'), msg=document.getElementById('formMsg'), done=document.getElementById('formDone');
+  var submitBtn=form.querySelector('button[type=submit]');
   form.addEventListener('submit',function(e){
     e.preventDefault();
     var name=form.name.value.trim(), email=form.email.value.trim(), addr=form.address.value.trim();
     if(!name||!addr||!/^\S+@\S+\.\S+$/.test(email)){msg.textContent='Please add your name, a valid email and the property address.';msg.style.color='var(--gold-hi)';return}
-    var svcs=form.services.value.trim();
-    msg.textContent='Name, email and address are required.';msg.style.color='';
-    done.textContent='Bid request prepared for '+addr+' ('+(svcs||'general inquiry')+', '+form.when.value.toLowerCase()+'). Demo site: online submission is not connected yet, so please call or email to place the order.';
-    done.hidden=false;
+    if(form._honey.value){return}
+    msg.textContent='Sending…';msg.style.color='';submitBtn.disabled=true;done.hidden=true;
+    var payload={
+      _subject:'Bid request: '+addr,
+      _template:'table',
+      _replyto:email,
+      _captcha:'false',
+      'Name':name,'Company':form.company.value.trim(),'Email':email,'Phone':form.phone.value.trim(),
+      'Property address':addr,'Client type':form.type.value,'Needed by':form.when.value,
+      'Services needed':form.services.value.trim(),'Notes':form.notes.value.trim()
+    };
+    fetch('https://formsubmit.co/ajax/client@fortzenhomesolutionsllc.com',{
+      method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)
+    }).then(function(r){return r.json()}).then(function(d){
+      if(!d||String(d.success)!=='true') throw new Error('send failed');
+      done.textContent='Thanks, '+name+'. Your bid request for '+addr+' was sent. We will reply within one business day. Need it faster? Call (817) 986-0552.';
+      done.hidden=false;form.reset();msg.textContent='Name, email and address are required.';
+    }).catch(function(){
+      msg.textContent='We could not send the form. Please call (817) 986-0552 or email client@fortzenhomesolutionsllc.com.';msg.style.color='var(--gold-hi)';
+    }).finally(function(){submitBtn.disabled=false});
   });
 })();
 </script>
